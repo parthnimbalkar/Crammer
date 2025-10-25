@@ -1,10 +1,13 @@
-# app.py - PrepMate with Minimalist Dark Design
+import os
 import streamlit as st
 import requests
 from pages.chat import show_chat_interface
 from pages.flashcards import show_flashcards_interface
 
-API_URL = "http://localhost:8000"
+if hasattr(st, 'secrets') and 'API_URL' in st.secrets:
+    API_URL = st.secrets["API_URL"]
+else:
+    API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 # Page config
 st.set_page_config(

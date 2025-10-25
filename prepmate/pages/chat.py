@@ -1,8 +1,12 @@
-# pages/chat.py - Chat Interface with Minimalist Dark Theme
+import os
 import streamlit as st
 import requests
 
-API_URL = "http://localhost:8000"
+# Check if running on Streamlit Cloud or locally
+if hasattr(st, 'secrets') and 'API_URL' in st.secrets:
+    API_URL = st.secrets["API_URL"]
+else:
+    API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def show_chat_interface():
     """

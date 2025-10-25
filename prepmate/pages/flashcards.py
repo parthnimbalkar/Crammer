@@ -1,10 +1,14 @@
-# pages/flashcards.py - Fixed with proper content display
+import os
 import streamlit as st
 import requests
 import re
 import html
 
-API_URL = "http://localhost:8000"
+# Check if running on Streamlit Cloud or locally
+if hasattr(st, 'secrets') and 'API_URL' in st.secrets:
+    API_URL = st.secrets["API_URL"]
+else:
+    API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def parse_flashcards(flashcard_text: str) -> list:
     """
