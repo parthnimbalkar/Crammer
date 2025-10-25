@@ -23,7 +23,7 @@ pinecone-client==3.0.0
 sentence-transformers==2.2.2
 
 # HTTP & Networking
-requests==2.31.0
+requests==2.32.5
 httpx==0.25.0
 
 # Data Validation (FIXED - upgraded to satisfy langchain-core)
