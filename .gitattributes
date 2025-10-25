@@ -1,0 +1,2 @@
+# Handle line endings for cross-platform compatibility
+* text=auto eol=lf
