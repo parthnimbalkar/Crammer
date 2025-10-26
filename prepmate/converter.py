@@ -16,7 +16,7 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-INDEX_NAME = "my-rag-index"
+INDEX_NAME = "crammer"
 
 # Validate API key
 if not PINECONE_API_KEY:
@@ -29,23 +29,14 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 
 # Create index if it doesn't exist
 if INDEX_NAME not in pc.list_indexes().names():
-    print(f"Creating index '{INDEX_NAME}'...")
-    pc.create_index(
-        name=INDEX_NAME,
-        dimension=384,  # multilingual-e5-small dimension
-        metric="cosine",
-        spec=ServerlessSpec(
-            cloud="aws",
-            region="us-east-1"
-        )
-    )
-    print("✅ Index created! Waiting for it to be ready...")
-    time.sleep(10)
+    raise ValueError(f"❌ Index '{INDEX_NAME}' not found! Please create it in Pinecone dashboard first.")
 else:
-    print(f"✅ Index '{INDEX_NAME}' already exists!")
+    print(f"✅ Index '{INDEX_NAME}' found!")
+    index = pc.Index(INDEX_NAME)
+    stats = index.describe_index_stats()
+    print(f"  Current vectors: {stats.get('total_vector_count', 0)}")
 
-print("✅ Using Pinecone Inference API (multilingual-e5-small, 384d) - No local embeddings!")
-
+print("✅ Using Pinecone Inference API (llama-text-embed-v2, 384d) - No local embeddings!")
 
 def clear_pinecone_index():
     """Delete all vectors from Pinecone index"""
@@ -173,10 +164,10 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
             try:
                 # Generate embeddings using Pinecone Inference API
                 embeddings_response = pc.inference.embed(
-                    model="multilingual-e5-small",  # 384 dimensions
+                    model="llama-text-embed-v2",
                     inputs=batch_chunks,
                     parameters={"input_type": "passage", "truncate": "END"}
-                )
+)
                 
                 # Prepare vectors for upload
                 vectors_to_upsert = []

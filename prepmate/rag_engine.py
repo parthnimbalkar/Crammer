@@ -42,10 +42,10 @@ class RAGTutor:
         try:
             # Embed query using Pinecone Inference API
             query_embedding = self.pc.inference.embed(
-                model="multilingual-e5-small",  # 384 dimensions
-                inputs=[query],
-                parameters={"input_type": "query", "truncate": "END"}
-            )[0].values
+    model="llama-text-embed-v2",
+    inputs=[query],
+    parameters={"input_type": "query", "truncate": "END"}
+)[0].values
             
             # Search Pinecone
             results = self.index.query(
