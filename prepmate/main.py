@@ -37,11 +37,24 @@ tutor = None
 #         print(f"❌ Failed to initialize RAG: {e}")
 #         raise
 
+# @app.on_event("startup")
+# async def startup_event():
+#     print("🚀 Starting...")
+#     tutor = None  # Skip RAG
+#     print("✅ Ready!")
+
 @app.on_event("startup")
 async def startup_event():
-    print("🚀 Starting...")
-    tutor = None  # Skip RAG
-    print("✅ Ready!")
+    global tutor
+    print("🚀 Starting PrepMate API...")
+    try:
+        tutor = RAGTutor()  # Re-enable RAG!
+        print("✅ PrepMate ready!")
+    except Exception as e:
+        print(f"❌ Failed to initialize RAG: {e}")
+        print("⚠️ API will run but RAG features disabled")
+        tutor = None
+
 
 
 app.include_router(router)

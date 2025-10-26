@@ -1,4 +1,4 @@
-# converter.py - IMPROVED VERSION with better Pinecone debugging
+# converter.py - Using Pinecone Inference API with 384-dimension model
 import os
 from typing import List
 from fastapi import UploadFile
@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from unstructured.partition.auto import partition
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_pinecone import Pinecone as PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 import time
 
@@ -34,7 +32,7 @@ if INDEX_NAME not in pc.list_indexes().names():
     print(f"Creating index '{INDEX_NAME}'...")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=384,
+        dimension=384,  # multilingual-e5-small dimension
         metric="cosine",
         spec=ServerlessSpec(
             cloud="aws",
@@ -42,16 +40,11 @@ if INDEX_NAME not in pc.list_indexes().names():
         )
     )
     print("✅ Index created! Waiting for it to be ready...")
-    time.sleep(10)  # Wait longer for new index
+    time.sleep(10)
 else:
     print(f"✅ Index '{INDEX_NAME}' already exists!")
 
-# Initialize embeddings model
-print("Loading embedding model...")
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-print("✅ Embedding model loaded!")
+print("✅ Using Pinecone Inference API (multilingual-e5-small, 384d) - No local embeddings!")
 
 
 def clear_pinecone_index():
@@ -139,50 +132,79 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[st
 
 def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
     """
-    Converts chunks to embeddings and uploads to Pinecone with detailed verification
+    Converts chunks to embeddings using Pinecone Inference API and uploads to Pinecone
     """
     print(f"\n{'='*60}")
     print(f"🔄 STARTING PINECONE UPLOAD")
     print(f"{'='*60}")
     print(f"  Chunks to upload: {len(chunks)}")
     print(f"  Index name: {INDEX_NAME}")
+    print(f"  Embedding model: multilingual-e5-small (384d)")
     print(f"  Source: {source_filename}")
     
     if len(chunks) == 0:
         print("⚠️ No chunks to store!")
         return None
     
-    # Create metadata for each chunk
-    metadatas = [
-        {
-            "source": source_filename,
-            "chunk_index": i,
-            "chunk_length": len(chunk)
-        }
-        for i, chunk in enumerate(chunks)
-    ]
-    
     try:
+        # Get index reference
+        index = pc.Index(INDEX_NAME)
+        
         # Check index before upload
         print(f"\n📊 BEFORE UPLOAD:")
-        index = pc.Index(INDEX_NAME)
         stats_before = index.describe_index_stats()
         vectors_before = stats_before.get('total_vector_count', 0)
         print(f"  Existing vectors: {vectors_before}")
         
-        # Upload vectors
-        print(f"\n🚀 UPLOADING...")
-        vectorstore = PineconeVectorStore.from_texts(
-            texts=chunks,
-            embedding=embeddings,
-            index_name=INDEX_NAME,
-            metadatas=metadatas,
-            pinecone_api_key=PINECONE_API_KEY
-        )
+        # Upload vectors using Pinecone Inference API
+        print(f"\n🚀 UPLOADING WITH PINECONE INFERENCE API...")
         
-        print(f"  Upload command completed!")
+        # Batch process chunks (100 at a time to avoid rate limits)
+        batch_size = 100
+        total_uploaded = 0
         
-        # Wait and verify with multiple checks
+        for i in range(0, len(chunks), batch_size):
+            batch_chunks = chunks[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (len(chunks) + batch_size - 1) // batch_size
+            
+            print(f"  Processing batch {batch_num}/{total_batches} ({len(batch_chunks)} chunks)...")
+            
+            try:
+                # Generate embeddings using Pinecone Inference API
+                embeddings_response = pc.inference.embed(
+                    model="multilingual-e5-small",  # 384 dimensions
+                    inputs=batch_chunks,
+                    parameters={"input_type": "passage", "truncate": "END"}
+                )
+                
+                # Prepare vectors for upload
+                vectors_to_upsert = []
+                for j, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings_response)):
+                    vector_id = f"{source_filename}-{i + j}"
+                    vectors_to_upsert.append({
+                        "id": vector_id,
+                        "values": embedding.values,
+                        "metadata": {
+                            "text": chunk,
+                            "source": source_filename,
+                            "chunk_index": i + j,
+                            "chunk_length": len(chunk)
+                        }
+                    })
+                
+                # Upsert to Pinecone
+                index.upsert(vectors=vectors_to_upsert)
+                total_uploaded += len(vectors_to_upsert)
+                print(f"  ✅ Batch {batch_num} uploaded ({total_uploaded}/{len(chunks)} total)")
+                
+            except Exception as batch_error:
+                print(f"  ⚠️ Error in batch {batch_num}: {batch_error}")
+                continue
+        
+        print(f"\n  Upload completed! {total_uploaded} vectors uploaded.")
+        
+        # Wait and verify
         print(f"\n⏳ VERIFYING UPLOAD (checking every 2 seconds)...")
         max_attempts = 10
         for attempt in range(max_attempts):
@@ -193,13 +215,13 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
             
             print(f"  Attempt {attempt+1}/{max_attempts}: {vectors_now} total ({new_vectors} new)")
             
-            if new_vectors >= len(chunks):
+            if new_vectors >= total_uploaded:
                 print(f"\n✅ SUCCESS! All {new_vectors} vectors uploaded!")
-                return vectorstore
+                return True
             elif new_vectors > 0:
                 print(f"  ⏳ Partial upload detected, waiting...")
         
-        # Final check after all attempts
+        # Final check
         stats_final = index.describe_index_stats()
         total_vectors = stats_final.get('total_vector_count', 0)
         new_vectors = total_vectors - vectors_before
@@ -218,13 +240,12 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
                 "1. Invalid Pinecone API key\n"
                 "2. Wrong index name\n"
                 "3. Insufficient permissions\n"
-                "4. Index configuration issue\n"
                 "Please check your Pinecone dashboard at https://app.pinecone.io"
             )
         elif new_vectors < len(chunks):
             print(f"⚠️ WARNING: Only {new_vectors}/{len(chunks)} vectors uploaded")
         
-        return vectorstore
+        return True
     
     except Exception as e:
         print(f"\n❌ ERROR DURING UPLOAD:")

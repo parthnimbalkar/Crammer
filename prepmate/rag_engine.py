@@ -1,8 +1,7 @@
-# rag_engine.py - Core RAG functionality with DEBUG LOGGING
+# rag_engine.py - Using Pinecone Inference API with 384-dimension model
 import os
 from dotenv import load_dotenv
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_pinecone import Pinecone as PineconeVectorStore
+from pinecone import Pinecone
 from langchain_groq import ChatGroq
 from prompts import (
     TUTOR_SYSTEM_PROMPT,
@@ -14,38 +13,61 @@ from prompts import (
 load_dotenv()
 
 class RAGTutor:
-    """RAG-based Tutor System"""
+    """RAG-based Tutor System using Pinecone Inference API"""
     
     def __init__(self):
-        # Load embeddings
-        print("Loading embedding model...")
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
+        print("🚀 Initializing RAG Tutor...")
         
         # Connect to Pinecone
         print("Connecting to Pinecone...")
-        self.vectorstore = PineconeVectorStore(
-            index_name="my-rag-index",
-            embedding=self.embeddings,
-            pinecone_api_key=os.getenv("PINECONE_API_KEY")
-        )
+        self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        self.index = self.pc.Index("my-rag-index")
+        print("✅ Connected to Pinecone")
         
         # Initialize LLM
-        print("Initializing LLM...")
+        print("Initializing Groq LLM...")
         self.llm = ChatGroq(
             model="llama-3.1-8b-instant",
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.7
         )
+        print("✅ Groq LLM ready")
         
-        print(" RAG Tutor ready!")
+        print("✅ RAG Tutor ready! Using Pinecone Inference (multilingual-e5-small, 384d)")
     
     def _get_relevant_context(self, query: str, k: int = 4) -> str:
-        """Retrieve relevant chunks from vector store"""
-        docs = self.vectorstore.similarity_search(query, k=k)
-        context = "\n\n".join([doc.page_content for doc in docs])
-        return context
+        """Retrieve relevant chunks from vector store using Pinecone Inference"""
+        print(f"🔍 Searching for relevant context (top {k})...")
+        
+        try:
+            # Embed query using Pinecone Inference API
+            query_embedding = self.pc.inference.embed(
+                model="multilingual-e5-small",  # 384 dimensions
+                inputs=[query],
+                parameters={"input_type": "query", "truncate": "END"}
+            )[0].values
+            
+            # Search Pinecone
+            results = self.index.query(
+                vector=query_embedding,
+                top_k=k,
+                include_metadata=True
+            )
+            
+            # Extract text from results
+            contexts = []
+            for match in results.matches:
+                text = match.metadata.get("text", "")
+                if text:
+                    contexts.append(text)
+            
+            context = "\n\n".join(contexts)
+            print(f"✅ Found {len(contexts)} relevant chunks")
+            return context
+            
+        except Exception as e:
+            print(f"❌ Error retrieving context: {e}")
+            return ""
     
     def teach(self, topic: str) -> dict:
         """Teaching mode - explain a topic"""
@@ -90,9 +112,9 @@ class RAGTutor:
         }
      
     def generate_flashcards(self, topic: str, num_cards: int = 15) -> dict:
-        """Generate flashcards for revision - WITH DEBUG LOGGING"""
+        """Generate flashcards for revision"""
         print(f"\n{'='*70}")
-        print(f" FLASHCARD GENERATION START")
+        print(f"🗂️ FLASHCARD GENERATION START")
         print(f"{'='*70}")
         print(f"Topic: {topic}")
         print(f"Num cards requested: {num_cards}")
@@ -100,7 +122,6 @@ class RAGTutor:
         # Get comprehensive context
         print("\n📚 Retrieving context from Pinecone...")
         context = self._get_relevant_context(topic, k=8)
-      
         
         # Create prompt
         prompt = FLASHCARD_PROMPT.format(
@@ -121,31 +142,7 @@ class RAGTutor:
         response = self.llm.invoke(messages)
         print("✅ LLM response received")
         
-        # DEBUG: Print the actual LLM response
-        print("\n" + "="*70)
-        print("🤖 LLM RAW RESPONSE:")
-        print("="*70)
-        print(response.content[:1500])  # First 1500 characters
-        if len(response.content) > 1500:
-            print("\n... [truncated] ...")
-        print("="*70)
         print(f"📏 Total response length: {len(response.content)} characters")
-        
-        # Check format
-        has_card = "Card 1:" in response.content or "Card 1" in response.content
-        has_front = "Front:" in response.content
-        has_back = "Back:" in response.content
-        
-        print(f"\n🔍 Format check:")
-        print(f"  - Contains 'Card 1:': {has_card}")
-        print(f"  - Contains 'Front:': {has_front}")
-        print(f"  - Contains 'Back:': {has_back}")
-        
-        if has_card and has_front and has_back:
-            print("  ✅ Response appears to follow expected format!")
-        else:
-            print("  ⚠️ WARNING: Response may not follow expected format!")
-        
         print("="*70 + "\n")
         
         return {
