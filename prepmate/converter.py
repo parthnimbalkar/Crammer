@@ -1,4 +1,4 @@
-# converter.py - Using Pinecone Inference API with 384-dimension model
+# converter.py - Using Pinecone Inference API with llama-text-embed-v2 (1024d)
 import os
 from typing import List
 from fastapi import UploadFile
@@ -36,7 +36,8 @@ else:
     stats = index.describe_index_stats()
     print(f"  Current vectors: {stats.get('total_vector_count', 0)}")
 
-print("✅ Using Pinecone Inference API (llama-text-embed-v2, 384d) - No local embeddings!")
+print("✅ Using Pinecone Inference API (llama-text-embed-v2, 1024d) - No local embeddings!")
+
 
 def clear_pinecone_index():
     """Delete all vectors from Pinecone index"""
@@ -130,7 +131,7 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
     print(f"{'='*60}")
     print(f"  Chunks to upload: {len(chunks)}")
     print(f"  Index name: {INDEX_NAME}")
-    print(f"  Embedding model: multilingual-e5-small (384d)")
+    print(f"  Embedding model: llama-text-embed-v2 (1024d)")
     print(f"  Source: {source_filename}")
     
     if len(chunks) == 0:
@@ -150,8 +151,8 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
         # Upload vectors using Pinecone Inference API
         print(f"\n🚀 UPLOADING WITH PINECONE INFERENCE API...")
         
-        # Batch process chunks (100 at a time to avoid rate limits)
-        batch_size = 100
+        # Batch process chunks (96 at a time - llama-text-embed-v2 limit)
+        batch_size = 96
         total_uploaded = 0
         
         for i in range(0, len(chunks), batch_size):
@@ -167,7 +168,7 @@ def store_in_pinecone(chunks: List[str], source_filename: str = "unknown"):
                     model="llama-text-embed-v2",
                     inputs=batch_chunks,
                     parameters={"input_type": "passage", "truncate": "END"}
-)
+                )
                 
                 # Prepare vectors for upload
                 vectors_to_upsert = []
