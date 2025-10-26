@@ -26,3 +26,4 @@ test.txt
 venv/
 env/
 prepmate.egg-info/
+*.cfg
