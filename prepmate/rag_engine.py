@@ -21,7 +21,7 @@ class RAGTutor:
         # Connect to Pinecone
         print("Connecting to Pinecone...")
         self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        self.index = self.pc.Index("my-rag-index")
+        self.index = self.pc.Index("crammer")
         print("✅ Connected to Pinecone")
         
         # Initialize LLM
