@@ -192,9 +192,10 @@ Back: [Clear answer]
 ✓ Each card tests ONE concept clearly
 ✓ Answers are factual and specific
 ✓ Questions avoid yes/no answers
-✓ Information comes from the provided context
+✓ Information comes from the provided context only. 
 ✓ Cards progress from fundamental to detailed
 
+These below are just examples to illustrate the format and style:
 **EXAMPLE OF GOOD FLASHCARD:**
 Card 1:
 Front: What is the primary function of mitochondria in cells?
