@@ -141,6 +141,7 @@ Provide a clear, direct answer that:
 """
 
 # ============================================================
+# ============================================================
 FLASHCARD_PROMPT = """Based on the following content from the student's study materials:
 
 CONTEXT:
@@ -149,6 +150,8 @@ CONTEXT:
 ---
 
 Generate EXACTLY {num_cards} flashcards for active recall and spaced repetition study.
+
+**CRITICAL: Use ONLY information from the context above. Do NOT use external knowledge or examples.**
 
 **MANDATORY FORMAT** (must be followed exactly):
 
@@ -176,7 +179,7 @@ Back: [Clear answer]
   * "What is the significance of..." (importance)
 
 **BACK (Answer) - Should be:**
-- Complete but concise (2-4 words typically)
+- Complete but concise (2-5 sentences typically)
 - Include the key concept PLUS supporting detail
 - Use clear, simple language
 - Self-contained (understandable without the front)
@@ -192,14 +195,9 @@ Back: [Clear answer]
 ✓ Each card tests ONE concept clearly
 ✓ Answers are factual and specific
 ✓ Questions avoid yes/no answers
-✓ Information comes from the provided context only. 
+✓ Information comes ONLY from the context provided above
 ✓ Cards progress from fundamental to detailed
+✓ NO external examples - use only the provided study materials
 
-These below are just examples to illustrate the format and style:
-**EXAMPLE OF GOOD FLASHCARD:**
-Card 1:
-Front: What is the primary function of mitochondria in cells?
-Back: Mitochondria are the powerhouses of cells, producing ATP (adenosine triphosphate) through cellular respiration. They convert nutrients into usable energy that powers cellular activities.
-
-Now generate {num_cards} high-quality flashcards following this exact format and these principles.
+Now generate {num_cards} high-quality flashcards using ONLY the information from the context above.
 """
