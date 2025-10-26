@@ -26,16 +26,22 @@ app.add_middleware(
 
 tutor = None
 
+# @app.on_event("startup")
+# async def startup_event():
+#     global tutor
+#     print("🚀 Starting PrepMate API...")
+#     try:
+#         tutor = RAGTutor()
+#         print("✅ PrepMate ready!")
+#     except Exception as e:
+#         print(f"❌ Failed to initialize RAG: {e}")
+#         raise
+
 @app.on_event("startup")
 async def startup_event():
-    global tutor
-    print("🚀 Starting PrepMate API...")
-    try:
-        tutor = RAGTutor()
-        print("✅ PrepMate ready!")
-    except Exception as e:
-        print(f"❌ Failed to initialize RAG: {e}")
-        raise
+    print("🚀 Starting...")
+    tutor = None  # Skip RAG
+    print("✅ Ready!")
 
 
 app.include_router(router)
