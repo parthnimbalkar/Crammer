@@ -1,8 +1,4 @@
-# prompts.py - Enhanced Prompts for Better Responses
 
-# ============================================================
-# SYSTEM PROMPT - Defines AI Personality
-# ============================================================
 
 TUTOR_SYSTEM_PROMPT = """You are an expert tutor with deep knowledge across multiple subjects. Your role is to help students master concepts from their study materials through clear, engaging explanations.
 
@@ -140,8 +136,6 @@ Provide a clear, direct answer that:
 - Keep paragraphs short (3-4 sentences max)
 """
 
-# ============================================================
-# ============================================================
 FLASHCARD_PROMPT = """Based on the following content from the student's study materials:
 
 CONTEXT:
