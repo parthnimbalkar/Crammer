@@ -703,6 +703,6 @@ Crammer was built to make studying more effective through AI. By combining RAG w
 
 **[⬆ Back to Top](#-crammer---ai-powered-study-assistant)**
 
-Made with 💙 by the Crammer Team
+Made with 💙 by Parth Nimbalkar
 
 </div>
