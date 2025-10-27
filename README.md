@@ -677,12 +677,7 @@ SOFTWARE.
 
 ---
 
-## 💬 Support
 
-### **Get Help**
-- 🐛 [Report Issues](https://github.com/yourusername/crammer-prepmate/issues)
-- 💡 [Feature Requests](https://github.com/yourusername/crammer-prepmate/issues/new?labels=enhancement)
-- 📧 Email: support@crammer.app *(if applicable)*
 
 ### **Community**
 - ⭐ Star this repo if helpful!
