@@ -9,7 +9,7 @@
 
 Crammer is an intelligent study assistant that uses Retrieval-Augmented Generation (RAG) to help students learn from their own study materials. Upload your documents (PDF, DOCX, TXT), and Crammer creates an interactive learning environment with AI-powered chat and automatically generated flashcards.
 
-**Live Demo**: [crammer.streamlit.app](#) 
+**Live Demo**: [crammer.streamlit.app](https://crammer.streamlit.app/) 
 
 ---
 
